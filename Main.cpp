@@ -23,47 +23,52 @@ namespace{
 
 
 
-void search(){
-    unique_lock <mutex> oneLock (mtx);
-    condition.wait(oneLock);
-        if (must_wait){
-             ++ waiting;
-            condition.notify_one();
-            condition.wait(oneLock);
+    void search(){
+        unique_lock <mutex> oneLock (mtx);
+        condition.wait(oneLock);
+            if (must_wait){
+                ++ waiting;
+                condition.notify_one();
+                block.wait(oneLock);
+            }
+                    else{
 
-            cout << "En attente d'un siege" << endl;
+                        ++ riding;
+                        must_wait = (riding == 5);
+                        condition.notify_one();
 
-                else{
-
-                    ++ riding;
-                    must_wait = (riding == 5);
-                    cout << "on sassoie un siege est libre" << endl;
-                    condition.notify_one();
-
-                }
-
-        }
-}
-
-
-void Ride(){
-
-    unique_lock <mutex> oneLock (mtx);
-    condition.wait(oneLock);
-    riding -- ;
-    if(riding == 0){
-        int n = min(5, waiting);
-        waiting = waiting - n;
-        riding = riding - n; 
-        must_wait = (riding == 5);
-        block.notify_one(n);
-
-
+                    }      
     }
 
-    condition.notify_one();
-    
+
+    void Ride(){
+
+        unique_lock <mutex> oneLock (mtx);
+        condition.wait(oneLock);
+        riding -- ;
+        if(riding == 0){
+            int n = min(5, waiting);
+            waiting = waiting - n;
+            riding = riding - n; 
+            must_wait = (riding == 5);
+            block.notify_one(n);
+
+
+        }
+
+        condition.notify_one();
+    }  
+}//namesapce
+
+
+int main (){
+
+    thread_group groupe;
+    groupe.create_thread(riding);
+    groupe.create_thread(waiting);
+    groupe.create_thread(block);
+    groupe.join_all();
+
+    return 0;
 }
-
-
 
